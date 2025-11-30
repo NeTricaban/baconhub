@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BACONHUB Школа Скриптов</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        /* --- Переменные CSS --- */
+        :root {
+            --bacon-red: #E74C3C;
+            --roblox-blue: #3498DB;
+            --bg-color: #1e1e1e;
+            --card-color: #2c2c2c;
+            --text-color: #ecf0f1;
+            --subtext-color: #bdc3c7;
+            --code-color: #f1c40f;
+            --success-color: #2ecc71;
+            --radius: 12px;
+        }
+
+        /* --- Основные стили страницы --- */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 10px;
+            margin: 0;
+            user-select: none;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Шапка приложения --- */
+        .header {
+            text-align: center;
+            padding: 15px 0;
+            border-bottom: 2px solid var(--bacon-red);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: var(--bacon-red);
+            font-size: 1.8em;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- Карточка урока --- */
+        .lesson-card {
+            background-color: var(--card-color);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+        }
+
+        .lesson-title {
+            color: var(--roblox-blue);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            border-left: 4px solid var(--roblox-blue);
+            padding-left: 10px;
+            font-weight: bold;
+        }
+
+        /* --- Выделение кода --- */
+        code {
+            display: block;
+            background-color: var(--bg-color);
+            color: var(--code-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+
+        .example-block {
+            border: 1px dashed var(--subtext-color);
+            padding: 15px;
+            border-radius: var(--radius);
+            margin: 20px 0;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Кнопки управления уроками --- */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .control-btn {
+            flex-grow: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .control-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* Стиль для кнопки "Предыдущий" */
+        #prev-btn {
+            background-color: var(--card-color);
+            color: var(--text-color);
+            border: 1px solid #444;
+        }
+        #prev-btn:disabled {
+            background-color: #383838;
+            color: #777;
+            cursor: not-allowed;
+            border-color: #383838;
+        }
+
+        /* Стиль для кнопки "Далее" / "Завершить" */
+        #next-btn {
+            background-color: var(--bacon-red);
+            color: white;
+            font-weight: bold;
+        }
+        #next-btn.completed {
+            background-color: var(--success-color);
+        }
+        #next-btn:disabled {
+            background-color: #383838;
+            color: #777;
+            cursor: not-allowed;
+        }
+
+        /* --- Адаптивный дизайн для Telegram Mini App --- */
+        @media (max-width: 500px) {
+            body {
+                padding: 5px;
+            }
+            .lesson-card {
+                padding: 15px;
+            }
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .control-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>BACONHUB ШКОЛА СКРИПТОВ</h1>
+    </div>
+
+    <div class="lesson-card">
+        <h2 class="lesson-title" id="lesson-title"></h2>
+        <div id="lesson-content"></div>
+
+        <div class="controls">
+            <button class="control-btn" id="prev-btn" onclick="prevLesson()" disabled>
+                <i class="fas fa-chevron-left"></i> Предыдущий
+            </button>
+            <button class="control-btn" id="next-btn" onclick="nextLesson()">
+                Далее <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Инициализация Telegram WebApp ---
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+
+        // --- Данные уроков ---
+        const lessons = [
+            {
+                title: "Урок 1: Основы Lua - Переменные",
+                content: `
+                    <p>Lua — это мощный язык, используемый в Roblox. Начнем с <b>переменных</b>.</p>
+                    <p>Переменная — это контейнер для хранения информации. Используйте ключевое слово <code>local</code> для объявления локальной переменной.</p>
+                    <div class="example-block">
+                        <p><strong>Пример кода:</strong></p>
+                        <code>
+local health = 100
+local playerName = "NoobSlayer"
+local isAlive = true
+                        </code>
+                    </div>
+                    <p>🔥 <strong>Важно:</strong> Всегда используйте <code>local</code>, чтобы избежать конфликтов глобальных переменных, что особенно важно при инъекции скриптов.</p>
+                `,
+                completed: false
+            },
+            {
+                title: "Урок 2: Доступ к Среде Roblox (Workspace)",
+                content: `
+                    <p>Чтобы что-то изменить, нужно получить доступ к объектам. Главный объект — это <code>game</code>.</p>
+                    <p>Мы получаем доступ к <code>Workspace</code>, где хранятся все части, модели и игроки.</p>
+                    <div class="example-block">
+                        <p><strong>Пример кода:</strong></p>
+                        <code>
+-- Получаем доступ к Workspace
+local ws = game:GetService("Workspace")
+
+-- Получаем доступ к части с именем "TargetPart"
+local targetPart = ws:FindFirstChild("TargetPart")
+                        </code>
+                    </div>
+                    <p>💡 <strong>Инжектор:</strong> Большинство эксплойтов начинают с доступа к <code>game</code>, чтобы найти нужный объект.</p>
+                `,
+                completed: false
+            },
+            {
+                title: "Урок 3: Изменение Свойств (Телепорт)",
+                content: `
+                    <p>Изменение свойств позволяет менять позицию персонажа (Телепорт). Для этого нужна часть <code>HumanoidRootPart</code>.</p>
+                    <p>Свойство <code>CFrame</code> (позиция и ориентация) позволяет мгновенно переместить персонажа.</p>
+                    <div class="example-block">
+                        <p><strong>Пример кода (Телепорт):</strong></p>
+                        <code>
+local player = game.Players.LocalPlayer
+local root = player.Character.HumanoidRootPart
+
+-- Перемещаем игрока на координаты (0, 100, 0)
+root.CFrame = CFrame.new(0, 100, 0)
+                        </code>
+                    </div>
+                    <p>⚠️ <strong>Внимание:</strong> Использование <code>LocalPlayer</code> возможно только через инжектор!</p>
+                `,
+                completed: false
+            },
+            {
+                title: "Урок 4: Циклы и Функции",
+                content: `
+                    <p>Циклы и функции позволяют выполнять код многократно или организовывать его в блоки. Это критично для создания работающих эксплойтов (например, <b>Aimbot</b> или <b>Fly</b>).</p>
+                    <p><strong>Цикл <code>while true do</code></strong> выполняет код бесконечно, пока не будет остановлен (это основа для читов, требующих постоянной проверки).</p>
+                    <div class="example-block">
+                        <p><strong>Пример кода:</strong></p>
+                        <code>
+local function applyGodMode()
+    -- Создаем функцию для активации GodMode
+    local humanoid = game.Players.LocalPlayer.Character.Humanoid
+    humanoid.Health = humanoid.MaxHealth
+end
+
+-- Бесконечный цикл, чтобы поддерживать GodMode
+while true do
+    applyGodMode()
+    wait(0.1) -- Небольшая задержка, чтобы не нагружать игру
+end
+                        </code>
+                    </div>
+                    <p>💡 <strong>Совет:</strong> Всегда используйте <code>wait()</code> или <code>task.wait()</code> в бесконечных циклах, иначе игра зависнет!</p>
+                `,
+                completed: false
+            },
+            {
+                title: "Урок 5: Эксплойт-Фреймворки и Wait For Child",
+                content: `
+                    <p>Большинство эксплойт-фреймворков имеют специальные функции, упрощающие работу. Одна из самых важных — <code>:WaitForChild()</code>.</p>
+                    <p>Эта функция ждет, пока объект появится, что очень полезно, так как объекты (например, персонаж игрока) загружаются не сразу.</p>
+                    <div class="example-block">
+                        <p><strong>Пример кода:</strong></p>
+                        <code>
+-- Получаем локального игрока
+local player = game.Players.LocalPlayer
+
+-- Ждем, пока загрузится его персонаж (Character)
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Ждем, пока в персонаже появится HumanoidRootPart
+local root = character:WaitForChild("HumanoidRootPart")
+
+-- Теперь мы уверены, что root существует и можно телепортироваться
+root.CFrame = CFrame.new(0, 50, 0)
+                        </code>
+                    </div>
+                    <p>🚀 <strong>Эксплойт-Фреймворки:</strong> Инжекторы часто предоставляют глобальную переменную (например, <code>getgenv()</code>) для обхода защиты. Изучение документации вашего инжектора обязательно!</p>
+                `,
+                completed: false
+            },
+            {
+                title: "Урок 6: Курс завершен! Ваша миссия выполнена!",
+                content: `
+                    <p style="text-align: center; font-size: 1.2em; color: var(--success-color);"><i class="fas fa-check-circle"></i> Поздравляем, будущий скриптер!</p>
+                    <p>Вы успешно прошли базовый курс BACONHUB по скриптам Roblox Lua. Вы узнали о переменных, Workspace, телепортации, циклах и важности <code>:WaitForChild()</code>.</p>
+                    <p>Это отличный старт. Продолжайте экспериментировать и изучать продвинутые темы, такие как Хуки (Hooks) и Ремоут-Функции (Remote Functions). Удачи в мире Roblox эксплойтов!</p>
+                    <p style="text-align: center; margin-top: 30px;"><i class="fas fa-hat-wizard" style="font-size: 2em; color: var(--roblox-blue);"></i></p>
+                `,
+                completed: true
+            }
+        ];
+
+        let currentLessonIndex = 0;
+        const totalLessons = lessons.length;
+
+        const titleEl = document.getElementById('lesson-title');
+        const contentEl = document.getElementById('lesson-content');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        /** Рендерит урок по его индексу. */
+        function renderLesson(index) {
+            const lesson = lessons[index];
+            titleEl.textContent = `${lesson.title} (${index + 1}/${totalLessons})`;
+            contentEl.innerHTML = lesson.content;
+
+            // Обновление состояния кнопки "Предыдущий"
+            prevBtn.disabled = index === 0;
+
+            // Обновление текста и стиля кнопки "Далее" / "Завершить"
+            if (index === totalLessons - 1) {
+                // Это последний урок (Завершение)
+                nextBtn.textContent = "Завершить курс! 🎉";
+                nextBtn.classList.add('completed');
+
+                // Убеждаемся, что кнопка активна для закрытия
+                nextBtn.disabled = false;
+            } else {
+                nextBtn.textContent = "Далее";
+                nextBtn.classList.remove('completed');
+                nextBtn.disabled = false;
+            }
+
+            window.scrollTo(0, 0);
+        }
+
+        /** Переключается на предыдущий урок. */
+        function prevLesson() {
+            if (currentLessonIndex > 0) {
+                currentLessonIndex--;
+                renderLesson(currentLessonIndex);
+            }
+        }
+
+        /** Переключается на следующий урок или закрывает Mini App, если курс завершен. */
+        function nextLesson() {
+            if (currentLessonIndex < totalLessons - 1) {
+                currentLessonIndex++;
+                renderLesson(currentLessonIndex);
+            } else if (currentLessonIndex === totalLessons - 1) {
+                 // --- ИСПРАВЛЕНИЕ ОШИБКИ ---
+                 // Если это последний урок, закрываем Mini App
+                 tg.close();
+            }
+        }
+
+        // --- Инициализация при загрузке страницы ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderLesson(currentLessonIndex);
+        });
+
+    </script>
+</body>
+</html>
